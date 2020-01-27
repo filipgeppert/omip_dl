@@ -1,20 +1,12 @@
-import glob
 import os
-import sys
-from random import sample
+import shutil
 
-import cv2
-import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
-
 import torch
-import torchvision
-import torchvision.transforms as transforms
-
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
+import pandas as pd
 
 
 def images_to_probs(net, images):
@@ -50,6 +42,7 @@ def plot_classes_preds(net, images, labels):
                     color=("green" if preds[idx]==labels[idx].item() else "red"))
     return fig
 
+
 # helper function to show an image
 # (used in the `plot_classes_preds` function below)
 def matplotlib_imshow(img, one_channel=False):
@@ -62,3 +55,65 @@ def matplotlib_imshow(img, one_channel=False):
     else:
         plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
+
+def test_model(model: nn.Module, data_loader: torch.utils.data.DataLoader, device="cpu"):
+    # Test the model
+    model.eval()  # eval mode (batchnorm uses moving mean/variance instead of mini-batch mean/variance)
+    results_true = np.array([])
+    results_pred = np.array([])
+
+    with torch.no_grad():
+        correct = 0
+        total = 0
+        for images, labels in data_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            results_true = np.concatenate((results_true, labels), axis=0)
+            results_pred = np.concatenate((results_pred, predicted), axis=0)
+            # for image, label, prediction in zip(images, labels, predicted):
+            #                     plt.imshow(image[0])
+            #                     plt.show()
+            #     print(f"True: {label}, Predicted: {prediction}")
+        accuracy = 100*correct/total
+
+        print('Test Accuracy of the model on the test images: {} %'.format(accuracy))
+    return results_true, results_pred, accuracy
+
+
+def compare_and_save_model_checkpoint(state: dict, model_name: str,
+                                      checkpoint_dir: str, info_dict: dict,
+                                      is_best: bool = False
+                                      ):
+    """
+    Saves model checkpoint to a given directory.
+
+    :param state: pytorch model state dict
+    :param is_best: flag to state if model performance is the best so far
+    :param model_name: name of the model
+    :param checkpoint_dir: path to checkpoint directory
+    :param info_dict: dictionary containing model performance data
+    :return: None
+    """
+    # Check if checkpoint dir exists, otherwise create it
+    if not os.path.exists(checkpoint_dir):
+        os.mkdir(checkpoint_dir)
+        is_best = True
+    else:
+        df = pd.read_csv(os.path.join(checkpoint_dir, "metrics.csv"),
+                         sep=";",
+                         dtype={'accuracy': float})
+        if df.loc[0, 'accuracy'] < info_dict['accuracy']:
+            is_best = True
+
+    f_path = os.path.join(checkpoint_dir, f'{model_name}_checkpoint.pt')
+    torch.save(state, f_path)
+    if is_best:
+        best_fpath = os.path.join(checkpoint_dir, f'{model_name}_best_model.pt')
+        shutil.copyfile(f_path, best_fpath)
+        info_dict = {a: [d] for a, d in info_dict.items()}
+        df = pd.DataFrame(info_dict)
+        df.to_csv(os.path.join(checkpoint_dir, "metrics.csv"), index=False, sep=";")
