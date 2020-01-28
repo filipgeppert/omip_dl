@@ -72,8 +72,10 @@ def test_model(model: nn.Module, data_loader: torch.utils.data.DataLoader, devic
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-            results_true = np.concatenate((results_true, labels), axis=0)
-            results_pred = np.concatenate((results_pred, predicted), axis=0)
+            labels_cpu = labels.cpu()
+            predicted_cpu = predicted.cpu()
+            results_true = np.concatenate((results_true, labels_cpu), axis=0)
+            results_pred = np.concatenate((results_pred, predicted_cpu), axis=0)
             # for image, label, prediction in zip(images, labels, predicted):
             #                     plt.imshow(image[0])
             #                     plt.show()
