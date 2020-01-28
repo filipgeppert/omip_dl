@@ -6,4 +6,4 @@ BUCKET_NAME="omip-images"
 source activate pytorch_p36
 python manage.py
 # copy results to s3
-aws s3 cp ~/$TOP_DIRECTORY/models/ s3://$BUCKET_NAME/models/ --recursively
+aws s3 cp --recursive ~/$TOP_DIRECTORY/models/ s3://$BUCKET_NAME/models/
