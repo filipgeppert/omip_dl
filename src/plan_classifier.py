@@ -78,7 +78,7 @@ def run_model():
             running_loss = 0.0
 
     print("Test model..")
-    results_true, results_pred, accuracy = test_model(model=model, data_loader=testloader)
+    results_true, results_pred, accuracy = test_model(model=model, data_loader=testloader, device=device)
     cr = classification_report(y_true=results_true, y_pred=results_pred)
     print(cr)
 
