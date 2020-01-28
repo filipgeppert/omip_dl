@@ -3,12 +3,12 @@ import sys
 
 
 MODEL_NAME = "plan_classifier"
-NUMBER_EPOCHS = 20
+NUMBER_EPOCHS = 1
 NUMBER_CLASSES = 2
 BATCH_SIZE = 50
 LEARNING_RATE = 0.001
 CROP_SIZE = 400
-READ_HISTORY_MODEL = True
+LOAD_CHECKPOINT = True
 # Input size dimension
 INPUT_DIMENSION = 3
 CLASS_LABELS = ('Other', 'Plans')

@@ -5,10 +5,11 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 from torchvision import datasets
+from sklearn.metrics import classification_report
 
 from settings import *
 from src.architecture import ConvNet3d
-from src.utilities import test_model, compare_and_save_model_checkpoint
+from src.utilities import test_model, compare_and_save_model_checkpoint, load_checkpoint
 
 
 def run_model():
@@ -44,15 +45,19 @@ def run_model():
                           )
 
     model = ConvNet3d(num_classes=NUMBER_CLASSES, crop_size=CROP_SIZE).to(device)
-
-    # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-    running_loss = 0.0
-    # Train the model
-    total_step = len(trainloader)
+    # Load previous calculations
+    if LOAD_CHECKPOINT:
+        checkpoint_path = os.path.join(CHECKPOINT_DIR, f'{MODEL_NAME}_checkpoint.pt')
+        if os.path.isfile(checkpoint_path):
+            print("Reading history model...")
+            model, optimizer, start_epoch = load_checkpoint(checkpoint_path, model, optimizer)
 
+    # Train the model
+    running_loss = 0.0
+    total_step = len(trainloader)
     print("Train model...")
     for epoch in range(NUMBER_EPOCHS):
         for i, (images, labels) in enumerate(trainloader):
@@ -74,6 +79,8 @@ def run_model():
 
     print("Test model..")
     results_true, results_pred, accuracy = test_model(model=model, data_loader=testloader)
+    cr = classification_report(y_true=results_true, y_pred=results_pred)
+    print(cr)
 
     checkpoint = {
         'epoch': epoch + 1,
@@ -81,8 +88,11 @@ def run_model():
         'optimizer': optimizer.state_dict()
     }
 
-    compare_and_save_model_checkpoint(state=checkpoint, is_best=True, model_name=MODEL_NAME,
-                                      checkpoint_dir=CHECKPOINT_DIR, info_dict={"accuracy": accuracy})
+    compare_and_save_model_checkpoint(state=checkpoint,
+                                      model_name=MODEL_NAME,
+                                      checkpoint_dir=CHECKPOINT_DIR,
+                                      info_dict={"accuracy": accuracy,
+                                                 "classification_report": cr})
 
 
 if __name__ == "__main__":

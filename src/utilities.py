@@ -117,3 +117,11 @@ def compare_and_save_model_checkpoint(state: dict, model_name: str,
         info_dict = {a: [d] for a, d in info_dict.items()}
         df = pd.DataFrame(info_dict)
         df.to_csv(os.path.join(checkpoint_dir, "metrics.csv"), index=False, sep=";")
+
+
+def load_checkpoint(checkpoint_fpath: str, model, optimizer):
+    checkpoint = torch.load(checkpoint_fpath)
+    model.load_state_dict(checkpoint['state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    return model, optimizer, checkpoint['epoch']
+
